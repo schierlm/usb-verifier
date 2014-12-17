@@ -1,0 +1,7 @@
+::sysinit:/etc/rcS
+tty1::respawn:-/etc/usb-verifier
+tty2::askfirst:-/bin/sh
+tty3::askfirst:-/bin/sh
+tty4::askfirst:-/bin/sh
+::restart:/sbin/init
+::ctrlaltdel:/sbin/reboot

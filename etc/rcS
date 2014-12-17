@@ -1,0 +1,11 @@
+#!/bin/sh
+makedevs /dev/sda b 8 0 0 15 s
+makedevs /dev/sdb b 8 16 0 15 s
+makedevs /dev/sdc b 8 32 0 15 s
+makedevs /dev/sdd b 8 48 0 15 s
+makedevs /dev/sde b 8 64 0 15 s
+makedevs /dev/sdf b 8 80 0 15 s
+makedevs /dev/sdg b 8 96 0 15 s
+makedevs /dev/sdh b 8 112 0 15 s
+mount -t proc none /proc
+mount -t sysfs none /sys

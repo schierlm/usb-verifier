@@ -1,0 +1,22 @@
+#!/bin/sh -e
+echo Building initramfs...
+cd `dirname $0`
+[ -d build ] && rm -R build
+mkdir -p build/bin build/etc
+cp busybox build/bin
+cp etc/* secrets build/etc
+cd build
+mkdir dev mnt proc sys
+ln -s etc/init init
+ln -s bin sbin
+cd bin
+for LNK in blkid cp find less makedevs sed sha256sum umount \
+		diff grep ls mount sh tee xargs init reboot poweroff; do
+	ln -s busybox $LNK
+done
+cd ..
+find . | cpio -H newc -R root:root -o >../initramfs.cpio
+cd ..
+gzip initramfs.cpio
+mv initramfs.cpio.gz initramfs
+echo Done.

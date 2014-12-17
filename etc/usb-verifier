@@ -1,0 +1,92 @@
+#!/bin/sh
+cd /
+. /etc/secrets
+FILE=usb-verifier-$SIGTOKEN.txt
+echo
+echo -e "\033[1mUSB VERIFIER\033[0m"
+echo
+echo Scanning for USB device...
+DEVICE=
+for DEV in `blkid | grep 'TYPE="vfat"' | sed s/:.*//`; do
+	echo Trying $DEV...
+	mount -o ro -t vfat $DEV /mnt
+	if [ -f /mnt/$FILE ]; then
+		DEVICE=$DEV
+		break
+	fi
+	umount /mnt
+done
+ISDIFF=0
+if [ -z $DEVICE ]; then
+	echo -e "\033[1m"
+	echo "*** Device not found. ***"
+	echo -e "\033[0m"
+else
+	echo Found device: $DEVICE.
+	echo -n "Creating checksums, this may take a while..."
+	cd /mnt
+	find . -type f -print0 | xargs -0 sha256sum | \
+		grep -v $FILE\$ >/newlist
+	cd /
+	echo "done."
+	HMAC=$(sha256sum /newlist | sed 's/ .*//')
+	HMAC=$(echo $SIGKEY1$HMAC$SIGKEY2 | sha256sum | sed 's/ .*//')
+	HMAC=$(echo $SIGKEY3$HMAC$SIGKEY4 | sha256sum | sed 's/ .*//')
+	echo >>/newlist
+	echo HMAC: $HMAC >>/newlist
+	echo -e "\033[1m"
+	if diff -q /mnt/$FILE /newlist; then
+		echo "*** Verify successful, no changes found. ***"
+	else
+		echo "*** Verify FAILED, changes found. ***"
+		cp /mnt/$FILE /oldlist
+		ISDIFF=1
+	fi
+	echo -e "\033[0m"
+	umount /mnt
+fi
+while true; do
+	echo
+	echo "Choose an action: "
+	if [ "$ISDIFF" = "1" ]; then
+		echo "  d: Show diff"
+		echo "  S: save current state to disk (uppercase!)"
+	fi
+	echo "  a: run script again"
+	echo "  s: spawn shell"
+	echo "  r: restart system"
+	echo "  h: halt system"
+	echo
+	echo -n "Your choice: "
+	read -n 1 CHOICE
+	echo
+	echo
+	case $CHOICE in
+		d)
+			if [ "$ISDIFF" = "1" ]; then
+				diff -U 999999 /oldlist /newlist | less
+			fi
+			;;
+		S)
+			if [ "$ISDIFF" = "1" ]; then
+				mount -t vfat $DEVICE /mnt
+				cp /newlist /mnt/$FILE
+				umount /mnt
+				ISDIFF=0
+			fi
+			;;
+		a)
+			exit
+			;;
+		s)
+			/bin/sh
+			;;
+		r)
+			reboot
+			;;
+
+		h)
+			poweroff
+			;;
+	esac
+done

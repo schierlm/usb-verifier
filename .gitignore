@@ -1,0 +1,5 @@
+vmlinuz
+busybox
+secrets
+initramfs
+build/
